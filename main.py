@@ -1,6 +1,14 @@
 import telebot
 from telebot import types
-from config import SITE
+from config import SITE, ADMIN
+from datetime import datetime
+import sys
+import locale
+
+if sys.platform == 'win32':
+    locale.setlocale(locale.LC_ALL, 'rus_rus')
+else:
+    locale.setlocale(locale.LC_ALL, 'ru_RU.UTF-8')
 
 bot = telebot.TeleBot('7338019969:AAHAGV9Mxgp0i2R3WW4xfc9m2_3da0CfA2U')
 
@@ -15,7 +23,7 @@ def start(message):
     """
     markup = types.ReplyKeyboardMarkup(True)
     button_1 = types.KeyboardButton('Записаться на фотосессию')
-    button_2 = types.KeyboardButton('Заказать обратный звонок')
+    button_2 = types.KeyboardButton('Свяжитесь со мной')
     markup.row(button_1, button_2)
     button_3 = types.KeyboardButton('Перейти на сайт')
     markup.row(button_3)
@@ -31,16 +39,30 @@ def processing_start_click(message):
     """
     Функция обрабатывает ответ пользователя на вопрос из меню /start и запускает дальнейшие действия по скрипту:
     1. "Записаться на фотосессию" - запускает меню выбора типа съёмки.
-    2. "Заказать обратный звонок" - открывает форму сбора данных клиента и отправляет их в ##  TODO.
+    2. "Заказать обратный звонок" - записывает данные Клиента в файл callback.txt
+    и отправляет уведомление Клиенту и Администратору.
     3. "Перейти на сайт" - открывает активную ссылку на сайт.
     """
     match message.text:
         case 'Записаться на фотосессию':
             choose_photoshoot(message)
             bot.register_next_step_handler(message, choose_photoshoot)
-        case 'Заказать обратный звонок':
+        case 'Свяжитесь со мной':
             bot.send_message(message.chat.id,
-                             'Вы заказали обратный звонок')  ## TODO: Добавить форму сбора данных клиента
+                             'Спасибо за обращение в студию МАММА МИА!\n\n'
+                             'Мы уже получили уведомление, и свяжемся с Вами в течение суток.')
+            current_date = datetime.now().date()
+            current_weekday = current_date.strftime('%A')
+            current_time = datetime.now().time().strftime('%H:%M')
+            with open('./data/callback.txt', 'a', encoding='UTF-8') as file:
+                file.write(
+                    f'Пользователь {message.from_user.username} '
+                    f'({message.from_user.first_name} {message.from_user.last_name}) '
+                    f'попросил связаться с ним {current_date} в {current_weekday} в {current_time}.\n')
+            bot.send_message(ADMIN,
+                                 f'Новый запрос на обратную связь от пользователя {message.from_user.username} '
+                                 f'({message.from_user.first_name} {message.from_user.last_name}): '
+                                 f'{current_date} в {current_weekday} в {current_time}')
             bot.register_next_step_handler(message, processing_start_click)
         case 'Перейти на сайт':
             go_to_site(message)
