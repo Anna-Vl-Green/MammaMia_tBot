@@ -1,0 +1,1 @@
+SITE = 'https://babyphoto.pro/'
